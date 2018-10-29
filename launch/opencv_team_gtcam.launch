@@ -1,5 +1,0 @@
-<launch>
-	<include file="$(find avt_vimba_camera)/mono_camera.launch"/>
-	<include file="$(find lane_detector)/launch/include/lane_detector.launch"/>
-	<include file="$(find lane_detector)/launch/include/serial_comm.launch"/>
-</launch>

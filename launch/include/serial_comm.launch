@@ -1,4 +1,0 @@
-<launch>
-	<!-- node pkg="serial_example" type="serial_read_and_write_node" name="serial_node" /-->
-	<node pkg="kuuve_control" type="write_serial" name="write_serial" />
-</launch>

@@ -1,53 +1,30 @@
-#include <cmath>
-#include <string>
-#include <vector>
-#include <stdexcept>
 #include "lane_detector/LaneDetectorNode.h"
 
 using namespace std;
 using namespace cv;
 
-LaneDetectorNode::LaneDetectorNode()
+LaneDetectorNode::LaneDetectorNode() 
 {
-	nh_ = ros::NodeHandle("~");
-	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
-#if RC_CAR
-	control_pub_ = nh_.advertise<std_msgs::String>("write", 10);
-#elif	SCALE_PLATFORM
-	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
-#endif
+nh_ = ros::NodeHandle("~");
 
-#if DEBUG
-	true_color_pub_ = nh_.advertise<sensor_msgs::Image>("truecolor", 10);
-	final_bin_pub_ = nh_.advertise<sensor_msgs::Image>("final_bin", 10);
-	bin_from_gray_pub_ = nh_.advertise<sensor_msgs::Image>("gray_bin", 10);
-	bin_from_hsv_s_pub_ = nh_.advertise<sensor_msgs::Image>("hsv_s_bin", 10);
-	printlog_pub_ = nh_.advertise<std_msgs::String>("printlog", 10);
-#endif
+/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
+control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
 
-#if WEBCAM
-	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
-#elif	PROSILICA_GT_CAM
-	image_sub_ = nh_.subscribe("/camera/image_raw", 1, &LaneDetectorNode::imageCallback, this);
-#endif
+image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 
-	int resize_width = 0;
-	int resize_height = 0;
-	int steer_max_angle = 0;
-	int detect_line_count = 0;
-
-	getRosParamForConstValue(resize_width, resize_height, steer_max_angle, detect_line_count);
-
-	lanedetector_ptr_ = unique_ptr<InToOutLaneDetector>(new InToOutLaneDetector(resize_width, resize_height, steer_max_angle, detect_line_count));
-
-	getRosParamForUpdate();
+getRosParamForUpdate();
 }
+
+
+LaneDetectorNode::LaneDetectorNode(String path)
+    : test_video_path(path)
+{}
+
 
 void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {
-	Mat raw_img;
 	try{
-		parseRawimg(image, raw_img);
+		parseRawimg(image, frame);
 	} catch(const cv_bridge::Exception& e) {
 		ROS_ERROR("cv_bridge exception: %s", e.what());
 		return ;
@@ -57,87 +34,123 @@ void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 
     getRosParamForUpdate();
 
-    int steer_control_value = lanedetector_ptr_->laneDetecting(raw_img);
+    steer_control_value_ = laneDetecting();
 
-#if	RC_CAR
-	std_msgs::String control_msg = makeControlMsg(steer_control_value);
-	printData(control_msg);
-#elif	SCALE_PLATFORM
 	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
-	printData();
-#endif
 
 	control_pub_.publish(control_msg);
-
-#if DEBUG
-	true_color_pub_.publish(getDetectColorImg());
-	final_bin_pub_.publish(getDetectFinalBinImg());
-	bin_from_gray_pub_.publish(getDetectGrayBinImg());
-	bin_from_hsv_s_pub_.publish(getDetectHsvSBinImg());
-	printlog_pub_.publish(getPrintlog());
-#endif
 }
 
-#if DEBUG
-sensor_msgs::ImagePtr LaneDetectorNode::getDetectColorImg()
+
+void LaneDetectorNode::getRosParamForUpdate()
 {
-	Mat image;
-	lanedetector_ptr_->getRoiColorImg(image);
-	return cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+    nh_.getParam("throttle", throttle_);
+    nh_.getParam("angle_factor", angle_factor_);
 }
 
-sensor_msgs::ImagePtr LaneDetectorNode::getDetectFinalBinImg()
+
+ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
 {
-	Mat image;
-	lanedetector_ptr_->getRoiBinaryImg(image);
-	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+	ackermann_msgs::AckermannDriveStamped control_msg;
+	//control_msg.drive.steering_angle = steer_control_value;
+	control_msg.drive.steering_angle = steer_control_value_;
+	control_msg.drive.speed = throttle_;
+	return control_msg;
 }
 
-sensor_msgs::ImagePtr LaneDetectorNode::getDetectGrayBinImg()
+
+int LaneDetectorNode::laneDetecting()
 {
-	Mat image;
-	lanedetector_ptr_->getRoiGrayBinImg(image);
-	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
+		int ncols = frame.cols;
+		int nrows = frame.rows;
+		
+
+		int64 t1 = getTickCount();
+		frame_count++;
+
+		// ȭ�� ũ�� ���� -> �ػ� �����Ͽ� ���ӵ� ���
+		resize(frame, frame, Size(ncols / resize_n, nrows / resize_n));
+
+		img_denoise = lanedetector.deNoise(frame);
+
+	   
+		lanedetector.filter_colors(img_denoise, img_mask2);
+
+		// Ȯ�� ����
+		//Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
+		//dilate(img_mask2, img_mask2, mask, Point(-1, -1), 3);
+
+		// �󺧸�
+	   // lanedetector.DrawLabelingImage(img_mask2);
+
+		imshow("img_mask2", img_mask2);
+		img_edges = lanedetector.edgeDetector(img_mask2);
+
+		
+		
+		// Mask the image so that we only get the ROI
+		img_mask = lanedetector.mask(img_edges,Mask_method);
+		
+
+		
+		imshow("img_mask", img_mask);
+
+		// Obtain Hough lines in the cropped image
+		lines = lanedetector.houghLines(img_mask);
+
+		
+			// Separate lines into left and right lines
+		left_right_lines = lanedetector.lineSeparation(lines, img_mask);
+
+		/*
+		// Ȯ��
+		for (j = 0; j < left_right_lines[0].size(); j++)
+		{
+			circle(frame, Point(left_right_lines[0][j][0], left_right_lines[0][j][1]), 5, Scalar(255, 0, 0), 5);
+			circle(frame, Point(left_right_lines[0][j][2], left_right_lines[0][j][3]), 5, Scalar(0, 0, 255), 5);
+
+
+		}
+
+		for (j = 0; j < left_right_lines[1].size(); j++)
+		{
+
+			circle(frame, Point(left_right_lines[1][j][0], left_right_lines[1][j][1]), 5, Scalar(0, 255, 0), 5);
+			circle(frame, Point(left_right_lines[1][j][2], left_right_lines[1][j][3]), 5, Scalar(0, 255, 0), 5);
+
+		}
+		*/
+
+
+		line(frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
+
+			// Apply regression to obtain only one line for each side of the lane
+		lane = lanedetector.regression(left_right_lines, frame, angle);  // frame -> img_mask
+
+			// Predict the turn by determining the vanishing point of the the lines
+		turn = lanedetector.predictTurn();
+
+			// Plot lane detection
+		flag_plot = lanedetector.plotLane(frame, lane, turn);
+		
+
+
+		int64 t2 = getTickCount();
+		double ms = (t2 - t1) * 1000 / getTickFrequency();
+		sum += ms;
+		avg = sum / (double)frame_count;
+		//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
+		
+		ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
+
+        return angle * angle_factor_;
 }
 
-sensor_msgs::ImagePtr LaneDetectorNode::getDetectHsvSBinImg()
+
+
+void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, cv::Mat& cv_img)
 {
-	Mat image;
-	lanedetector_ptr_->getRoiHsvSBinImg(image);
-	return cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
-}
-
-std_msgs::String LaneDetectorNode::getPrintlog()
-{
-	string log;
- 	log += "#### Algorithm Time #### \n";
-	log += (string)"it took : " + to_string(lanedetector_ptr_->getOnceDetectTime()) + "ms, " + "avg: " + to_string(lanedetector_ptr_->getAvgDetectTime()) + " fps : " + to_string(1000 / lanedetector_ptr_->getAvgDetectTime()) + '\n';
-	log += "#### Control #### \n";
-	log += "steering angle: " + to_string(lanedetector_ptr_->getRealSteerAngle()) + '\n';
-	log += "throttle: " + to_string(throttle_) + '\n';
-	log += "#### Ros Param #### \n";
-	log += "gray_bin_thres: " + to_string(lanedetector_ptr_->getGrayBinThres()) + '\n';
-	log += "hsv_s_bin_thres: " + to_string(lanedetector_ptr_->getHsvSBinThres()) + '\n';
-	log += "detect_line_count: " + to_string(lanedetector_ptr_->getDetectLineCount()) + '\n';
-	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
-		log += "detect_y_offset_" + to_string(i+1) + ": " + to_string(lanedetector_ptr_->getDetectYOffset(i)) + '\n';
-	log += "left_detect_offset: " + to_string(lanedetector_ptr_->getLeftDetectOffset()) + '\n';
-	log += "right_detect_offset: " + to_string(lanedetector_ptr_->getRightDetectOffset()) + '\n';
-	log += "steer_max_angle: " + to_string(lanedetector_ptr_->getSteerMaxAngle()) + '\n';
-	log += "yaw_factor: " + to_string(lanedetector_ptr_->getYawFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getYawFactor()) + '\n';
-	log += "lateral_factor: " + to_string(lanedetector_ptr_->getLateralFactor() * 100) + "% -> " + to_string(lanedetector_ptr_->getLateralFactor()) + '\n';
-	log += "---------------------------------\n";
-
-	std_msgs::String log_msg;
-	log_msg.data = log;
-	return log_msg;
-}
-
-#endif
-
-void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, Mat& cv_img)
-{
-	cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(ros_img, sensor_msgs::image_encodings::BGR8);
+    cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(ros_img, sensor_msgs::image_encodings::BGR8);
 
 	cv_img = cv_ptr->image;
 
@@ -146,114 +159,113 @@ void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, Ma
 	}
 }
 
-void LaneDetectorNode::getRosParamForConstValue(int& width, int& height, int& steer_max_angle, int& detect_line_count)
+
+bool LaneDetectorNode::run_test()
 {
-	nh_.getParam("/image/resize/width", width);
-	nh_.getParam("/image/resize/height", height);
-	nh_.getParam("/hardware_control/platform/steer_max_angle", steer_max_angle);
-	nh_.getParam("/detect/line_count", detect_line_count);
-}
+    if(test_video_path.empty())
+    {
+        ROS_ERROR("Test is failed. video path is empty! you should set video path by constructor argument");
+        return false;
+    }
 
-void LaneDetectorNode::getRosParamForUpdate()
-{
-	int paramArr[7];
-	nh_.getParam("/image/binary_thres/gray", paramArr[0]);
-	nh_.getParam("/image/binary_thres/hsv_s", paramArr[1]);
-	nh_.getParam("/detect/offset/left", paramArr[2]);
-	nh_.getParam("/detect/offset/right", paramArr[3]);
-	nh_.getParam("/image/roi/top_location", paramArr[4]);
-	nh_.getParam("/image/roi/bottom_location", paramArr[5]);
-	nh_.getParam("/detect/continuous_pixel", paramArr[6]);
+	VideoCapture cap;
+	//cap.open("../../kasa.mp4");
+	cap.open(test_video_path);
 
-	double factor[2];
-	nh_.getParam("/hardware_control/factor/yaw", factor[0]);
-	nh_.getParam("/hardware_control/factor/lateral", factor[1]);
-	nh_.getParam("/hardware_control/platform/throttle", throttle_);
+	if (!cap.isOpened())
+    {
+        ROS_ERROR("Test is failed. video is empty! you should check video path (constructor argument is correct)");
+        return false;
+    }
 
-	lanedetector_ptr_->setGrayBinThres(paramArr[0]);
-	lanedetector_ptr_->setHsvSBinThres(paramArr[1]);
-	lanedetector_ptr_->setLeftDetectOffset(paramArr[2]);
-	lanedetector_ptr_->setRightDetectOffset(paramArr[3]);
-	lanedetector_ptr_->setRoiTopLocation(paramArr[4]);
-	lanedetector_ptr_->setRoiBottomLocation(paramArr[5]);
-	lanedetector_ptr_->setContiDetectPixel(paramArr[6]);
+	while (1) {
+		// Capture frame
+		if (!cap.read(frame))
+			break;
 
-	lanedetector_ptr_->setYawFactor(factor[0]);
-	lanedetector_ptr_->setLateralFactor(factor[1]);
 
-	vector<int> detect_y_offset;
-	nh_.getParam("/detect/y_offset", detect_y_offset);
+		int ncols = frame.cols;
+		int nrows = frame.rows;
+		
 
-	int detect_line_count = lanedetector_ptr_->getDetectLineCount();
+		int64 t1 = getTickCount();
+		frame_count++;
 
-	if(detect_line_count != detect_y_offset.size())
-	{
-		// FIXME: throw exception? or assert? 
-		return ;
+		// ȭ�� ũ�� ���� -> �ػ� �����Ͽ� ���ӵ� ���
+		resize(frame, frame, Size(ncols / resize_n, nrows / resize_n));
+
+		img_denoise = lanedetector.deNoise(frame);
+
+	   
+		lanedetector.filter_colors(img_denoise, img_mask2);
+
+		// Ȯ�� ����
+		//Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
+		//dilate(img_mask2, img_mask2, mask, Point(-1, -1), 3);
+
+		// �󺧸�
+	   // lanedetector.DrawLabelingImage(img_mask2);
+
+		imshow("img_mask2", img_mask2);
+		img_edges = lanedetector.edgeDetector(img_mask2);
+
+		
+		
+		// Mask the image so that we only get the ROI
+		img_mask = lanedetector.mask(img_edges,Mask_method);
+		
+
+		
+		imshow("img_mask", img_mask);
+
+		// Obtain Hough lines in the cropped image
+		lines = lanedetector.houghLines(img_mask);
+
+		
+			// Separate lines into left and right lines
+		left_right_lines = lanedetector.lineSeparation(lines, img_mask);
+
+		/*
+		// Ȯ��
+		for (j = 0; j < left_right_lines[0].size(); j++)
+		{
+			circle(frame, Point(left_right_lines[0][j][0], left_right_lines[0][j][1]), 5, Scalar(255, 0, 0), 5);
+			circle(frame, Point(left_right_lines[0][j][2], left_right_lines[0][j][3]), 5, Scalar(0, 0, 255), 5);
+
+
+		}
+
+		for (j = 0; j < left_right_lines[1].size(); j++)
+		{
+
+			circle(frame, Point(left_right_lines[1][j][0], left_right_lines[1][j][1]), 5, Scalar(0, 255, 0), 5);
+			circle(frame, Point(left_right_lines[1][j][2], left_right_lines[1][j][3]), 5, Scalar(0, 255, 0), 5);
+
+		}
+		*/
+
+
+		line(frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
+
+			// Apply regression to obtain only one line for each side of the lane
+		lane = lanedetector.regression(left_right_lines, frame, angle);  // frame -> img_mask
+
+			// Predict the turn by determining the vanishing point of the the lines
+		turn = lanedetector.predictTurn();
+
+			// Plot lane detection
+		flag_plot = lanedetector.plotLane(frame, lane, turn);
+		
+
+
+		int64 t2 = getTickCount();
+		double ms = (t2 - t1) * 1000 / getTickFrequency();
+		sum += ms;
+		avg = sum / (double)frame_count;
+		waitKey(25);
+		//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
+		
+		printf("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
 	}
 
-	for(int i = 0; i < detect_line_count; i++) {
-		lanedetector_ptr_->setDetectYOffset(detect_y_offset[i], i);
-	}
 }
-
-#if RC_CAR
-std_msgs::String LaneDetectorNode::makeControlMsg(int steer)
-{
-	std_msgs::String control_msg;
-	control_msg.data = string(to_string(steer)) + "," + string(to_string(throttle_)) + ","; // Make message
-	return control_msg;
-}
-
-void LaneDetectorNode::printData(std_msgs::String control_msg)
-{
- 	cout << "#### Algorithm Time ####" << endl;
-	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
-	cout << "#### Control ####" << endl;
-	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
-	cout << "control msg: " << control_msg.data << endl;
-	cout << "#### Ros Param ####" << endl;
-	cout << "gray_bin_thres: " << lanedetector_ptr_->getGrayBinThres() << endl;
-	cout << "hsv_s_bin_thres: " << lanedetector_ptr_->getHsvSBinThres() << endl;
-	cout << "detect_line_count: " << lanedetector_ptr_->getDetectLineCount() << endl;
-	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
-		cout << "detect_y_offset_" << i+1 << ": " << lanedetector_ptr_->getDetectYOffset(i) << endl;
-	cout << "left_detect_offset: " << lanedetector_ptr_->getLeftDetectOffset() << endl;
-	cout << "right_detect_offset: " << lanedetector_ptr_->getRightDetectOffset() << endl;
-	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
-	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
-	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
-	cout << "---------------------------------" << endl;
-}
-
-#elif SCALE_PLATFORM
-ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
-{
-	ackermann_msgs::AckermannDriveStamped control_msg;
-	//control_msg.drive.steering_angle = steer_control_value;
-	control_msg.drive.steering_angle = lanedetector_ptr_->getRealSteerAngle();
-	control_msg.drive.speed = throttle_;
-	return control_msg;
-}
-
-void LaneDetectorNode::printData()
-{
- 	cout << "#### Algorithm Time ####" << endl;
-	cout << "it took : " << lanedetector_ptr_->getOnceDetectTime() << "ms, " << "avg: " << lanedetector_ptr_->getAvgDetectTime() << " fps : " << 1000 / lanedetector_ptr_->getAvgDetectTime() << endl;
-	cout << "#### Control ####" << endl;
-	cout << "steering angle: " << lanedetector_ptr_->getRealSteerAngle() << endl;
-	cout << "throttle: " << throttle_ << endl;
-	cout << "#### Ros Param ####" << endl;
-	cout << "gray_bin_thres: " << lanedetector_ptr_->getGrayBinThres() << endl;
-	cout << "hsv_s_bin_thres: " << lanedetector_ptr_->getHsvSBinThres() << endl;
-	cout << "detect_line_count: " << lanedetector_ptr_->getDetectLineCount() << endl;
-	for(int i = 0; i < lanedetector_ptr_->getDetectLineCount(); i++)
-		cout << "detect_y_offset_" << i+1 << ": " << lanedetector_ptr_->getDetectYOffset(i) << endl;
-	cout << "left_detect_offset: " << lanedetector_ptr_->getLeftDetectOffset() << endl;
-	cout << "right_detect_offset: " << lanedetector_ptr_->getRightDetectOffset() << endl;
-	cout << "steer_max_angle: " << lanedetector_ptr_->getSteerMaxAngle() << endl;
-	cout << "yaw_factor: " << lanedetector_ptr_->getYawFactor() * 100 << "% -> " << lanedetector_ptr_->getYawFactor() << endl;
-	cout << "lateral_factor: " << lanedetector_ptr_->getLateralFactor() * 100 << "% -> " << lanedetector_ptr_->getLateralFactor() << endl;
-	cout << "---------------------------------" << endl;
-}
-#endif

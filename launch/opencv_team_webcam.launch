@@ -1,6 +1,0 @@
-<launch>
-	<include file="$(find lane_detector)/launch/include/usb_cam.launch"/>
-	<include file="$(find lane_detector)/launch/include/lane_detector.launch"/>
-	<include file="$(find lane_detector)/launch/include/serial_comm.launch"/>
-</launch>
-

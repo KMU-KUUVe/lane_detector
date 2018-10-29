@@ -1,25 +1,23 @@
-#include <ros/ros.h>
+#include "ros/ros.h"
+#include <iostream>
 #include "lane_detector/LaneDetectorNode.h"
+#include "opencv2/opencv.hpp"
 
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "lane_detector");
 
-#if 1
-	//LaneDetector lane_detector(960/2, 540/2, 45);
+#if 1	// using camera
 	LaneDetectorNode lane_detector_node;
 
-#else
-	VideoCapture cap(1);
-	//cap.open("cameraimage_color_camera3.mp4");
+	ros::spin();
 
-	if (!cap.isOpened())
-	{
-		cout << "Not opened cap" << endl;
-		return -1;
-	}
+#else	// using mp4 file
+	LaneDetectorNode lane_detector_node("../test/challenge.mp4");
+
+	lane_detector_node.run_test();
+
 #endif
 
-	ros::spin();
 	return 0;
 }
