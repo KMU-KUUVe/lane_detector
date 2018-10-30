@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	ros::spin();
 
 #else	// using mp4 file
-	LaneDetectorNode lane_detector_node("../test/challenge.mp4");
+	LaneDetectorNode lane_detector_node("../challenge.mp4");
 
 	lane_detector_node.run_test();
 
