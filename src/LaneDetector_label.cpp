@@ -8,7 +8,7 @@ using namespace cv;
 
 //ȭ�� resize
 
-#define resize_n 2
+#define resize_n 1
 #define LINE_LENGTH 30
 
 // ���Ⱒ �Ǵ� ��ġ y
