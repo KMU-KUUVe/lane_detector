@@ -26,8 +26,8 @@ Scalar upper_yellow = Scalar(40, 255, 255);
 cv::Mat LaneDetector::deNoise(cv::Mat inputImage) {
 	cv::Mat output;
 
-	cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);     
-	//  medianBlur(inputImage, output, 3);    
+	cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);
+	//  medianBlur(inputImage, output, 3);
 
 	return output;
 }
@@ -44,7 +44,7 @@ cv::Mat LaneDetector::edgeDetector(cv::Mat img_noise) {
 	cv::cvtColor(img_noise, output, cv::COLOR_RGB2GRAY);
 	// Binarize gray image
 	cv::threshold(output, output, 120, 255, cv::THRESH_BINARY);
-	imshow("binary_gray", output);
+	//imshow("binary_gray", output);
 
 
 	// Create the kernel [-1 0 1] -> ���ι��� ���� �����̴�.
@@ -60,7 +60,7 @@ cv::Mat LaneDetector::edgeDetector(cv::Mat img_noise) {
 	// Filter the binary image to obtain the edges
 	cv::filter2D(output, output, -1, kernel, anchor, 0, cv::BORDER_DEFAULT);
 
-	imshow("filter2d", output);
+	//imshow("filter2d", output);
 	return output;
 }
 
@@ -83,7 +83,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 		cv::Mat mask = cv::Mat::zeros(frame.size(), frame.type());
 
 		// Point(x,y)
-		// TODO : 
+		// TODO :
 		/*
 		   cv::Point pts[4] = {
 		   cv::Point(210*(detect_n/100), 720*(detect_n/100)),
@@ -319,9 +319,10 @@ int LaneDetector::plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std:
 	cv::Mat output;
 	int i = 0;
 	// Create the transparent polygon for a better visualization of the lane
+	/* // for debug
 	for(i=0; i < 4; i++){
 		cout << lane[i] << endl;
-	}
+	}*/
 	inputImage.copyTo(output);
 	poly_points.push_back(lane[2]);
 	poly_points.push_back(lane[0]);
@@ -376,62 +377,4 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 
 
 	img_combine.copyTo(img_filtered);
-}
-
-
-void LaneDetector::DrawLabelingImage(Mat image)
-{
-	Mat img_gray, img_color, img_binary;
-
-	cvtColor(image, img_gray, COLOR_BGR2GRAY);  // Convert the image to Gray
-	threshold(img_gray, img_binary, 127, 255, THRESH_BINARY);
-	cvtColor(img_gray, img_color, COLOR_GRAY2BGR);
-
-
-	Mat img_labels, stats, centroids;
-	int numOfLables = connectedComponentsWithStats(img_binary, img_labels,
-			stats, centroids, 8, CV_32S);
-
-
-	//�󺧸��� �̹����� Ư�� ���� �÷��� ǥ�����ֱ�
-	for (int y = 0; y<img_labels.rows; ++y) {
-
-		int *label = img_labels.ptr<int>(y);
-		Vec3b* pixel = img_color.ptr<Vec3b>(y);
-
-
-		for (int x = 0; x < img_labels.cols; ++x) {
-
-
-			if (label[x] == 3) {
-				pixel[x][2] = 0;
-				pixel[x][1] = 255;
-				pixel[x][0] = 0;
-			}
-		}
-	}
-
-
-	//�󺧸� �� �̹����� ���� ���簢������ �ѷ��α�
-	for (int j = 1; j < numOfLables; j++) {
-		int area = stats.at<int>(j, CC_STAT_AREA);
-		int left = stats.at<int>(j, CC_STAT_LEFT);
-		int top = stats.at<int>(j, CC_STAT_TOP);
-		int width = stats.at<int>(j, CC_STAT_WIDTH);
-		int height = stats.at<int>(j, CC_STAT_HEIGHT);
-
-		int x = centroids.at<double>(j, 0); //�߽���ǥ
-		int y = centroids.at<double>(j, 1);
-
-		circle(img_color, Point(x, y), 5, Scalar(255, 0, 0), 1);
-
-		rectangle(img_color, Point(left, top), Point(left + width, top + height),
-				Scalar(0, 0, 255), 1);
-
-		putText(img_color, to_string(j), Point(left + 20, top + 20), FONT_HERSHEY_SIMPLEX,
-				1, Scalar(255, 0, 0), 2);
-	}
-
-	namedWindow("Labeling Image", WINDOW_AUTOSIZE);             // Create a window for display
-	imshow("Labeling Image", img_color);                        // Show our image inside it
 }
