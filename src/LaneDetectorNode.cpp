@@ -64,63 +64,42 @@ int LaneDetectorNode::laneDetecting()
 	int ncols = frame.cols;
 	int nrows = frame.rows;
 
-
 	int64 t1 = getTickCount();
 	frame_count++;
 
-	// ȭ�� ũ�� ���� -> �ػ� �����Ͽ� ���ӵ� ���
 	resize(frame, lane_frame, Size(ncols / resize_n, nrows / resize_n));
-
 	img_denoise = lanedetector.deNoise(lane_frame);
-
-
 	lanedetector.filter_colors(img_denoise, img_mask2);
 
-	// Ȯ�� ����
 	//Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
 	//dilate(img_mask2, img_mask2, mask, Point(-1, -1), 3);
-
-	// �󺧸�
-	// lanedetector.DrawLabelingImage(img_mask2);
 
 	imshow("img_mask2", img_mask2);
 	img_edges = lanedetector.edgeDetector(img_mask2);
 
-
-
 	// Mask the image so that we only get the ROI
 	img_mask = lanedetector.mask(img_edges,Mask_method);
-
-
-
 	imshow("img_mask", img_mask);
 
 	// Obtain Hough lines in the cropped image
 	lines = lanedetector.houghLines(img_mask);
 
-
 	// Separate lines into left and right lines
 	left_right_lines = lanedetector.lineSeparation(lines, img_mask);
 
 	/*
-	// Ȯ��
 	for (j = 0; j < left_right_lines[0].size(); j++)
 	{
 	circle(frame, Point(left_right_lines[0][j][0], left_right_lines[0][j][1]), 5, Scalar(255, 0, 0), 5);
 	circle(frame, Point(left_right_lines[0][j][2], left_right_lines[0][j][3]), 5, Scalar(0, 0, 255), 5);
-
-
 	}
 
 	for (j = 0; j < left_right_lines[1].size(); j++)
 	{
-
 	circle(frame, Point(left_right_lines[1][j][0], left_right_lines[1][j][1]), 5, Scalar(0, 255, 0), 5);
 	circle(frame, Point(left_right_lines[1][j][2], left_right_lines[1][j][3]), 5, Scalar(0, 255, 0), 5);
-
 	}
-	 */
-
+	*/
 
 	line(lane_frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
 
@@ -191,72 +170,50 @@ bool LaneDetectorNode::run_test()
 		int64 t1 = getTickCount();
 		frame_count++;
 
-		// ȭ�� ũ�� ���� -> �ػ� �����Ͽ� ���ӵ� ���
-		resize(frame, frame, Size(ncols / resize_n, nrows / resize_n));
+			resize(frame, lane_frame, Size(ncols / resize_n, nrows / resize_n));
+			img_denoise = lanedetector.deNoise(lane_frame);
+			lanedetector.filter_colors(img_denoise, img_mask2);
 
-		img_denoise = lanedetector.deNoise(frame);
+			//Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
+			//dilate(img_mask2, img_mask2, mask, Point(-1, -1), 3);
 
+			imshow("img_mask2", img_mask2);
+			img_edges = lanedetector.edgeDetector(img_mask2);
 
-		lanedetector.filter_colors(img_denoise, img_mask2);
+			// Mask the image so that we only get the ROI
+			img_mask = lanedetector.mask(img_edges,Mask_method);
+			imshow("img_mask", img_mask);
 
-		// Ȯ�� ����
-		//Mat mask = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3), cv::Point(1, 1));
-		//dilate(img_mask2, img_mask2, mask, Point(-1, -1), 3);
+			// Obtain Hough lines in the cropped image
+			lines = lanedetector.houghLines(img_mask);
 
-		// �󺧸�
-		// lanedetector.DrawLabelingImage(img_mask2);
+			// Separate lines into left and right lines
+			left_right_lines = lanedetector.lineSeparation(lines, img_mask);
 
-		imshow("img_mask2", img_mask2);
-		img_edges = lanedetector.edgeDetector(img_mask2);
+			/*
+			for (j = 0; j < left_right_lines[0].size(); j++)
+			{
+			circle(frame, Point(left_right_lines[0][j][0], left_right_lines[0][j][1]), 5, Scalar(255, 0, 0), 5);
+			circle(frame, Point(left_right_lines[0][j][2], left_right_lines[0][j][3]), 5, Scalar(0, 0, 255), 5);
+			}
 
+			for (j = 0; j < left_right_lines[1].size(); j++)
+			{
+			circle(frame, Point(left_right_lines[1][j][0], left_right_lines[1][j][1]), 5, Scalar(0, 255, 0), 5);
+			circle(frame, Point(left_right_lines[1][j][2], left_right_lines[1][j][3]), 5, Scalar(0, 255, 0), 5);
+			}
+			*/
 
+			line(lane_frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
 
-		// Mask the image so that we only get the ROI
-		img_mask = lanedetector.mask(img_edges,Mask_method);
+			// Apply regression to obtain only one line for each side of the lane
+			lane = lanedetector.regression(left_right_lines, lane_frame, angle);  // frame -> img_mask
 
+			// Predict the turn by determining the vanishing point of the the lines
+			turn = lanedetector.predictTurn();
 
-
-		imshow("img_mask", img_mask);
-
-		// Obtain Hough lines in the cropped image
-		lines = lanedetector.houghLines(img_mask);
-
-
-		// Separate lines into left and right lines
-		left_right_lines = lanedetector.lineSeparation(lines, img_mask);
-
-		/*
-		// Ȯ��
-		for (j = 0; j < left_right_lines[0].size(); j++)
-		{
-		circle(frame, Point(left_right_lines[0][j][0], left_right_lines[0][j][1]), 5, Scalar(255, 0, 0), 5);
-		circle(frame, Point(left_right_lines[0][j][2], left_right_lines[0][j][3]), 5, Scalar(0, 0, 255), 5);
-
-
-		}
-
-		for (j = 0; j < left_right_lines[1].size(); j++)
-		{
-
-		circle(frame, Point(left_right_lines[1][j][0], left_right_lines[1][j][1]), 5, Scalar(0, 255, 0), 5);
-		circle(frame, Point(left_right_lines[1][j][2], left_right_lines[1][j][3]), 5, Scalar(0, 255, 0), 5);
-
-		}
-		 */
-
-
-		line(frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
-
-		// Apply regression to obtain only one line for each side of the lane
-		lane = lanedetector.regression(left_right_lines, frame, angle);  // frame -> img_mask
-
-		// Predict the turn by determining the vanishing point of the the lines
-		turn = lanedetector.predictTurn();
-
-		// Plot lane detection
-		flag_plot = lanedetector.plotLane(frame, lane, turn);
-
-
+			// Plot lane detection
+			flag_plot = lanedetector.plotLane(lane_frame, lane, turn);
 
 		int64 t2 = getTickCount();
 		double ms = (t2 - t1) * 1000 / getTickFrequency();

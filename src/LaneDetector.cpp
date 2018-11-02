@@ -7,32 +7,72 @@
 using namespace std;
 using namespace cv;
 
-#define detect_n 30/100 // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
-#define resize_n 60/100
-
-#define LINE_LENGTH 30
-
-#define steer_height 70
-
 #define PI 3.141592
-
-Scalar lower_white = Scalar(170, 170, 170); //(RGB)
-Scalar upper_white = Scalar(255, 255, 255);
-Scalar lower_yellow = Scalar(10, 100, 100); // (HSV)
-Scalar upper_yellow = Scalar(40, 255, 255);
-
-
 
 //bluring the images for remove noise.
 cv::Mat LaneDetector::deNoise(cv::Mat inputImage) {
 	cv::Mat output;
-
 	cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);
 	//  medianBlur(inputImage, output, 3);
-
 	return output;
 }
 
+
+// extract white and yellow lane.
+void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
+{
+	lower_white_rgb = Scalar(WITHE_RGB_THRES, WITHE_RGB_THRES, WITHE_RGB_THRES); //(RGB)
+	upper_white_rgb = Scalar(255, 255, 255);
+	lower_yellow_hsv = Scalar(10, 100, 100); // (HSV)
+	upper_yellow_hsv = Scalar(40, 255, 255);
+	lower_white_hsv = Scalar(0, 0, 180); //(HSV)
+	upper_white_hsv = Scalar(360, 65, 255);
+	// Filter the image to include only yellow and white pixels
+	Mat img_bgr;
+	_img_bgr.copyTo(img_bgr);
+	Mat test;
+	_img_bgr.copyTo(test);
+	Mat img_hsv, img_combine;
+	Mat white_mask_rgb, white_image_rgb;
+	Mat yellow_mask, yellow_image;
+	Mat white_mask_hsv, white_image_hsv;
+
+
+	//Filter white pixels with RGB
+	inRange(img_bgr, lower_white_rgb, upper_white_rgb, white_mask_rgb);
+	bitwise_and(img_bgr, img_bgr, white_image_rgb, white_mask_rgb);
+
+	//Filter white pixels with HSV
+	cvtColor(test, img_hsv, COLOR_BGR2HSV);
+	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
+	bitwise_and(test, test, white_image_hsv, white_mask_hsv);
+	cvtColor(test, test, COLOR_BGR2HSV);
+	cv::threshold(test, test, 170, 255, cv::THRESH_BINARY);
+	imshow("white_hsv", white_image_hsv);
+
+/* //using white - hsv filtering
+	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
+	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
+	bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
+	cvtColor(img_bgr, img_bgr, COLOR_BGR2HSV);
+	cv::threshold(img_bgr, img_bgr, 170, 255, cv::THRESH_BINARY);
+	imshow("white_hsv", white_image_hsv);
+*/
+
+	//Filter yellow pixels( Hue 30 )
+	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
+	inRange(img_hsv, lower_yellow_hsv, upper_yellow_hsv, yellow_mask);
+	bitwise_and(img_bgr, img_bgr, yellow_image, yellow_mask);
+
+	//Combine the two above images
+	addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
+/* //using white - hsv filtering
+	addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
+*/
+	img_combine.copyTo(img_filtered);
+
+
+}
 
 
 //edge detection
@@ -47,11 +87,9 @@ cv::Mat LaneDetector::edgeDetector(cv::Mat img_noise) {
 	cv::threshold(output, output, 120, 255, cv::THRESH_BINARY);
 	//imshow("binary_gray", output);
 
-
-	// Create the kernel [-1 0 1] -> ���ι��� ���� �����̴�.
+	// Create the kernel [-1 0 1]
 	// This kernel is based on the one found in the
 	// Lane Departure Warning System by Mathworks
-
 	anchor = cv::Point(-1, -1);
 	kernel = cv::Mat(1, 3, CV_32F);
 	kernel.at<float>(0, 0) = -1;
@@ -73,8 +111,8 @@ cv::Mat LaneDetector::edgeDetector(cv::Mat img_noise) {
  */
 
 /* method
-0 :
-1 :
+0 : hexagon ROI
+1 : rectangle ROI
  */
 cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 	cv::Mat output;
@@ -82,9 +120,6 @@ cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 	if (method == 0)
 	{
 		cv::Mat mask = cv::Mat::zeros(frame.size(), frame.type());
-
-		// Point(x,y)
-		// TODO :
 
 		   cv::Point pts[6] = {
        cv::Point(frame.cols*x3, frame.rows*height3),
@@ -94,15 +129,14 @@ cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 		   cv::Point(frame.cols*(1-x2), frame.rows*height2),
        cv::Point(frame.cols*(1-x3), frame.rows*height3)
 		   };
-
-/*
+/* use trapezoid ROI
 		cv::Point pts[4] = {
 			cv::Point(0, frame.rows),
 			cv::Point(0, frame.rows*0.3),
 			cv::Point(frame.cols, frame.rows*0.3),
 			cv::Point(frame.cols, frame.rows)
 		};
-		*/
+*/
 		// Create a binary polygon mask
 		cv::fillConvexPoly(mask, pts, 6, cv::Scalar(255, 0, 0));
 		// Multiply the edges image and the mask to get the output
@@ -259,8 +293,6 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 	double left_ini_x = ((ini_y - left_b.y) / left_m) + left_b.x;
 	double left_fin_x = ((fin_y - left_b.y) / left_m) + left_b.x;
 
-	// ���Ⱒ  ����ϱ�.
-
 	line_middle.y = steer_height / 100.0 * inputImage.rows;
 
 	int left_xx = (line_middle.y - left_b.y) / (left_m)+left_b.x;
@@ -271,7 +303,13 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 	circle(inputImage, line_middle , 5, Scalar(255, 255, 0), 5);
 
 	angle = atan2(line_middle.x - inputImage.cols / 2.0, inputImage.rows - line_middle.y) * 180 / PI;
+	//angle = -atan2(line_middle.x - inputImage.cols / 2.0, inputImage.rows - line_middle.y) * 180 / PI;
 
+	if(angle >23){
+		angle = 23;
+	}else if(angle < -23){
+		angle = -23;
+	}
 	//
 
 	output[0] = cv::Point(right_ini_x, ini_y);
@@ -292,7 +330,7 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 std::string LaneDetector::predictTurn() {
 	std::string output;
 	double vanish_x;
-	double thr_vp = 10/resize_n;
+	double thr_vp = 10/resize_n_turn;
 
 	// The vanishing point is the point where both lane boundary lines intersect
 	vanish_x = static_cast<double>(((right_m*right_b.x) - (left_m*left_b.x) - right_b.y + left_b.y) / (right_m - left_m));
@@ -308,6 +346,7 @@ std::string LaneDetector::predictTurn() {
 	return output;
 }
 
+
 // PLOT RESULTS
 /**
  *@brief This function plots both sides of the lane, the turn prediction message and a transparent polygon that covers the area inside the lane boundaries
@@ -316,9 +355,6 @@ std::string LaneDetector::predictTurn() {
  *@param turn is the output string containing the turn information
  *@return The function returns a 0
  */
-
-
-
 int LaneDetector::plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std::string turn) {
 	std::vector<cv::Point> poly_points;
 	cv::Mat output;
@@ -336,8 +372,6 @@ int LaneDetector::plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std:
 	cv::fillConvexPoly(output, poly_points, cv::Scalar(0, 0, 255), CV_AA, 0);
 	cv::addWeighted(output, 0.3, inputImage, 1.0 - 0.3, 0, inputImage);
 
-
-
 	// Plot both lines of the lane boundary
 	cv::line(inputImage, lane[0], lane[1], cv::Scalar(0, 255, 255), 5, CV_AA);
 	cv::line(inputImage, lane[2], lane[3], cv::Scalar(0, 255, 255), 5, CV_AA);
@@ -349,37 +383,4 @@ int LaneDetector::plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std:
 	cv::namedWindow("Lane", CV_WINDOW_AUTOSIZE);
 	cv::imshow("Lane", inputImage);
 	return 0;
-}
-
-
-
-// �������, ����� ���� �����ϱ�.
-void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
-{
-	// Filter the image to include only yellow and white pixels
-	Mat img_bgr;
-	_img_bgr.copyTo(img_bgr);
-	Mat img_hsv, img_combine;
-	Mat white_mask, white_image;
-	Mat yellow_mask, yellow_image;
-
-
-	//Filter white pixels
-	inRange(img_bgr, lower_white, upper_white, white_mask);
-	bitwise_and(img_bgr, img_bgr, white_image, white_mask);
-
-
-	//Filter yellow pixels( Hue 30 )
-	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
-
-
-	inRange(img_hsv, lower_yellow, upper_yellow, yellow_mask);
-	bitwise_and(img_bgr, img_bgr, yellow_image, yellow_mask);
-
-
-	//Combine the two above images
-	addWeighted(white_image, 1.0, yellow_image, 1.0, 0.0, img_combine);
-
-
-	img_combine.copyTo(img_filtered);
 }
