@@ -13,7 +13,7 @@
     <!-- lane_detector-->
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
 		<!-- scale platform -->
-		<param name="throttle" value="7" />
+		<param name="throttle" value="4" />
 		<param name="angle_factor" type="double" value="1.0" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 	</node>

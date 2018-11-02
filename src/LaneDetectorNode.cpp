@@ -3,7 +3,7 @@
 using namespace std;
 using namespace cv;
 
-LaneDetectorNode::LaneDetectorNode() 
+LaneDetectorNode::LaneDetectorNode()
 {
 	nh_ = ros::NodeHandle("~");
 
@@ -69,9 +69,9 @@ int LaneDetectorNode::laneDetecting()
 	frame_count++;
 
 	// ȭ�� ũ�� ���� -> �ػ� �����Ͽ� ���ӵ� ���
-	resize(frame, frame, Size(ncols / resize_n, nrows / resize_n));
+	resize(frame, lane_frame, Size(ncols / resize_n, nrows / resize_n));
 
-	img_denoise = lanedetector.deNoise(frame);
+	img_denoise = lanedetector.deNoise(lane_frame);
 
 
 	lanedetector.filter_colors(img_denoise, img_mask2);
@@ -122,16 +122,16 @@ int LaneDetectorNode::laneDetecting()
 	 */
 
 
-	line(frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
+	line(lane_frame, Point(10, 0), Point(10, 20), Scalar(0, 0, 255), 5);
 
 	// Apply regression to obtain only one line for each side of the lane
-	lane = lanedetector.regression(left_right_lines, frame, angle);  // frame -> img_mask
+	lane = lanedetector.regression(left_right_lines, lane_frame, angle);  // frame -> img_mask
 
 	// Predict the turn by determining the vanishing point of the the lines
 	turn = lanedetector.predictTurn();
 
 	// Plot lane detection
-	flag_plot = lanedetector.plotLane(frame, lane, turn);
+	flag_plot = lanedetector.plotLane(lane_frame, lane, turn);
 
 
 
@@ -140,7 +140,7 @@ int LaneDetectorNode::laneDetecting()
 	sum += ms;
 	avg = sum / (double)frame_count;
 	//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
-	waitKey(3);	
+	waitKey(3);
 	ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
 
 	return angle * angle_factor_;

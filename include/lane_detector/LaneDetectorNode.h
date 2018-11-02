@@ -81,6 +81,7 @@ class LaneDetectorNode
 
 		LaneDetector lanedetector;  // Create the class object
 		cv::Mat frame;
+		cv::Mat lane_frame;
 		cv::Mat img_denoise;
 		cv::Mat img_edges;
 		cv::Mat img_mask;

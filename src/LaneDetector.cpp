@@ -140,7 +140,8 @@ std::vector<cv::Vec4i> LaneDetector::houghLines(cv::Mat img_mask) {
  *@param lines is the vector that contains all the detected lines
  *@param img_edges is used for determining the image center
  *@return The output is a vector(2) that contains all the classified lines
- */
+ **/
+
 std::vector<std::vector<cv::Vec4i> > LaneDetector::lineSeparation(std::vector<cv::Vec4i> lines, cv::Mat img_edges) {
 	std::vector<std::vector<cv::Vec4i> > output(2);
 	size_t j = 0;
