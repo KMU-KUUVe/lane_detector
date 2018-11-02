@@ -23,6 +23,13 @@ private:
 	double right_m;  // y = m*x + b
 	cv::Point left_b;  //
 	double left_m;  //
+	float	 height1 =0.3;
+	float height2 =0.7;
+	float height3 =1;
+	float x1 =0.4;
+	float x2 =0;
+	float x3 =0;
+
 
 public:
 	cv::Mat deNoise(cv::Mat inputImage);  // Apply Gaussian blurring to the input Image
@@ -36,7 +43,7 @@ public:
 
 	void filter_colors(cv::Mat _img_bgr, cv::Mat &img_filtered);
 	void DrawLabelingImage(cv::Mat image);
-	
+
 };
 
 #endif

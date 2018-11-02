@@ -3,10 +3,11 @@
 #include "opencv2/opencv.hpp"
 #include "lane_detector/LaneDetector.h"
 
+
 using namespace std;
 using namespace cv;
 
-#define detect_n 60/100 // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
+#define detect_n 30/100 // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
 #define resize_n 60/100
 
 #define LINE_LENGTH 30
@@ -15,7 +16,7 @@ using namespace cv;
 
 #define PI 3.141592
 
-Scalar lower_white = Scalar(200, 200, 200); //(RGB)
+Scalar lower_white = Scalar(170, 170, 170); //(RGB)
 Scalar upper_white = Scalar(255, 255, 255);
 Scalar lower_yellow = Scalar(10, 100, 100); // (HSV)
 Scalar upper_yellow = Scalar(40, 255, 255);
@@ -84,23 +85,26 @@ cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 
 		// Point(x,y)
 		// TODO :
-		/*
-		   cv::Point pts[4] = {
-		   cv::Point(210*(detect_n/100), 720*(detect_n/100)),
-		   cv::Point(550*(detect_n/100), 450*(detect_n/100)),
-		   cv::Point(716*(detect_n/100), 450*(detect_n/100)),
-		   cv::Point(1280*(detect_n/100), 720*(detect_n/100))
-		   };
-		 */
 
+		   cv::Point pts[6] = {
+       cv::Point(frame.cols*x3, frame.rows*height3),
+		   cv::Point(frame.cols*x2, frame.rows*height2),
+		   cv::Point(frame.cols*x1, frame.rows*height1),
+		   cv::Point(frame.cols*(1-x1), frame.rows*height1),
+		   cv::Point(frame.cols*(1-x2), frame.rows*height2),
+       cv::Point(frame.cols*(1-x3), frame.rows*height3)
+		   };
+
+/*
 		cv::Point pts[4] = {
 			cv::Point(0, frame.rows),
-			cv::Point(0, frame.rows/2),
-			cv::Point(frame.cols, frame.rows / 2),
+			cv::Point(0, frame.rows*0.3),
+			cv::Point(frame.cols, frame.rows*0.3),
 			cv::Point(frame.cols, frame.rows)
 		};
+		*/
 		// Create a binary polygon mask
-		cv::fillConvexPoly(mask, pts, 4, cv::Scalar(255, 0, 0));
+		cv::fillConvexPoly(mask, pts, 6, cv::Scalar(255, 0, 0));
 		// Multiply the edges image and the mask to get the output
 		cv::bitwise_and(frame, mask, output);
 
