@@ -23,7 +23,7 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 {
 	lower_white_rgb = Scalar(WITHE_RGB_THRES, WITHE_RGB_THRES, WITHE_RGB_THRES); //(RGB)
 	upper_white_rgb = Scalar(255, 255, 255);
-	lower_yellow_hsv = Scalar(10, 100, 100); // (HSV)
+	lower_yellow_hsv = Scalar(10, 180, 180); // (HSV)
 	upper_yellow_hsv = Scalar(40, 255, 255);
 	lower_white_hsv = Scalar(0, 0, 180); //(HSV)
 	upper_white_hsv = Scalar(360, 65, 255);
@@ -36,12 +36,17 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	Mat white_mask_rgb, white_image_rgb;
 	Mat yellow_mask, yellow_image;
 	Mat white_mask_hsv, white_image_hsv;
+	Mat thre, grayy;
+	
+	cvtColor(img_bgr, grayy, COLOR_BGR2GRAY);
+	cv::threshold(img_bgr, thre, 180, 255, cv::THRESH_BINARY);
+	imshow("thre....", thre);
 
 
 	//Filter white pixels with RGB
 	inRange(img_bgr, lower_white_rgb, upper_white_rgb, white_mask_rgb);
 	bitwise_and(img_bgr, img_bgr, white_image_rgb, white_mask_rgb);
-
+	imshow("white rgb", white_image_rgb);
 	//Filter white pixels with HSV
 	cvtColor(test, img_hsv, COLOR_BGR2HSV);
 	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
@@ -246,7 +251,7 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 	std::vector<cv::Point> right_pts;
 	std::vector<cv::Point> left_pts;
 	int ini_y = inputImage.rows;
-	int fin_y = inputImage.rows * detect_n;
+	int fin_y = inputImage.rows * detect_n ;
 	double right_ini_x;
 	double right_fin_x;
 	double right_xx;

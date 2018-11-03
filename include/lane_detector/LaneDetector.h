@@ -28,17 +28,17 @@ private:
 	uchar LINE_LENGTH = 30;
 
 	//regression variables
-	double detect_n = 30/100; // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
- 	uchar steer_height = 25; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
+	double detect_n = 0.30; // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
+ 	uchar steer_height = 35; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
 
 	//predict turn variables
 	double resize_n_turn = 1; //??
 
 	// ROI variables
 	float	 height1 = 0.3;
-	float height2 = 0.7;
+	float height2 = 0.5;
 	float height3 = 1;
-	float x1 = 0.4;
+	float x1 = 0.3;
 	float x2 = 0;
 	float x3 = 0;
 
@@ -49,7 +49,7 @@ private:
 	cv::Scalar upper_yellow_hsv;
 	cv::Scalar lower_white_hsv; //��� ���� (RGB)
 	cv::Scalar upper_white_hsv;
- 	uchar WITHE_RGB_THRES = 170;
+ 	uchar WITHE_RGB_THRES = 200;
 
 public:
 	cv::Mat deNoise(cv::Mat inputImage);  // Apply Gaussian blurring to the input Image
