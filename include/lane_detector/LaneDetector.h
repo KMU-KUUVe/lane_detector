@@ -29,7 +29,7 @@ private:
 
 	//regression variables
 	double detect_n = 30/100; // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
- 	uchar steer_height = 70; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
+ 	uchar steer_height = 25; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
 
 	//predict turn variables
 	double resize_n_turn = 1; //??

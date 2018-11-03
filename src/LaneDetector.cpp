@@ -50,14 +50,14 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	cv::threshold(test, test, 170, 255, cv::THRESH_BINARY);
 	imshow("white_hsv", white_image_hsv);
 
-/* //using white - hsv filtering
-	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
-	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
-	bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
-	cvtColor(img_bgr, img_bgr, COLOR_BGR2HSV);
-	cv::threshold(img_bgr, img_bgr, 170, 255, cv::THRESH_BINARY);
-	imshow("white_hsv", white_image_hsv);
-*/
+	/* //using white - hsv filtering
+	   cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
+	   inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
+	   bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
+	   cvtColor(img_bgr, img_bgr, COLOR_BGR2HSV);
+	   cv::threshold(img_bgr, img_bgr, 170, 255, cv::THRESH_BINARY);
+	   imshow("white_hsv", white_image_hsv);
+	 */
 
 	//Filter yellow pixels( Hue 30 )
 	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
@@ -66,9 +66,9 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 
 	//Combine the two above images
 	addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
-/* //using white - hsv filtering
-	addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
-*/
+	/* //using white - hsv filtering
+	   addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
+	 */
 	img_combine.copyTo(img_filtered);
 
 
@@ -121,22 +121,22 @@ cv::Mat LaneDetector::mask(cv::Mat frame, int method) {
 	{
 		cv::Mat mask = cv::Mat::zeros(frame.size(), frame.type());
 
-		   cv::Point pts[6] = {
-       cv::Point(frame.cols*x3, frame.rows*height3),
-		   cv::Point(frame.cols*x2, frame.rows*height2),
-		   cv::Point(frame.cols*x1, frame.rows*height1),
-		   cv::Point(frame.cols*(1-x1), frame.rows*height1),
-		   cv::Point(frame.cols*(1-x2), frame.rows*height2),
-       cv::Point(frame.cols*(1-x3), frame.rows*height3)
-		   };
-/* use trapezoid ROI
-		cv::Point pts[4] = {
-			cv::Point(0, frame.rows),
-			cv::Point(0, frame.rows*0.3),
-			cv::Point(frame.cols, frame.rows*0.3),
-			cv::Point(frame.cols, frame.rows)
+		cv::Point pts[6] = {
+			cv::Point(frame.cols*x3, frame.rows*height3),
+			cv::Point(frame.cols*x2, frame.rows*height2),
+			cv::Point(frame.cols*x1, frame.rows*height1),
+			cv::Point(frame.cols*(1-x1), frame.rows*height1),
+			cv::Point(frame.cols*(1-x2), frame.rows*height2),
+			cv::Point(frame.cols*(1-x3), frame.rows*height3)
 		};
-*/
+		/* use trapezoid ROI
+		   cv::Point pts[4] = {
+		   cv::Point(0, frame.rows),
+		   cv::Point(0, frame.rows*0.3),
+		   cv::Point(frame.cols, frame.rows*0.3),
+		   cv::Point(frame.cols, frame.rows)
+		   };
+		 */
 		// Create a binary polygon mask
 		cv::fillConvexPoly(mask, pts, 6, cv::Scalar(255, 0, 0));
 		// Multiply the edges image and the mask to get the output
@@ -245,6 +245,16 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 	Point line_middle;
 	std::vector<cv::Point> right_pts;
 	std::vector<cv::Point> left_pts;
+	int ini_y = inputImage.rows;
+	int fin_y = inputImage.rows * detect_n;
+	double right_ini_x;
+	double right_fin_x;
+	double right_xx;
+	double left_ini_x;
+	double left_fin_x;
+	double left_xx;
+
+	line_middle.y = steer_height / 100.0 * inputImage.rows;
 
 	// If right lines are being detected, fit a line using all the init and final points of the lines
 
@@ -263,6 +273,18 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 			right_m = right_line[1] / right_line[0];
 			right_b = cv::Point(right_line[2], right_line[3]);
 		}
+		right_ini_x = ((ini_y - right_b.y) / right_m) + right_b.x;
+		right_fin_x = ((fin_y - right_b.y) / right_m) + right_b.x;
+		right_xx = (line_middle.y - right_b.y) / (right_m)+right_b.x;
+
+
+	}
+	else{
+		right_ini_x = inputImage.cols;
+		right_fin_x = inputImage.cols;
+		right_xx = inputImage.cols;
+
+
 	}
 
 	// If left lines are being detected, fit a line using all the init and final points of the lines
@@ -281,23 +303,19 @@ std::vector<cv::Point> LaneDetector::regression(std::vector<std::vector<cv::Vec4
 			left_m = left_line[1] / left_line[0];
 			left_b = cv::Point(left_line[2], left_line[3]);
 		}
+		left_ini_x = ((ini_y - left_b.y) / left_m) + left_b.x;
+		left_fin_x = ((fin_y - left_b.y) / left_m) + left_b.x;
+		left_xx = (line_middle.y - left_b.y) / (left_m)+left_b.x;
+
+
+	}
+	else{
+		left_ini_x = 0;
+		left_fin_x = 0;
+		left_xx = 0;
 	}
 
 	// One the slope and offset points have been obtained, apply the line equation to obtain the line points
-	int ini_y = inputImage.rows;
-	int fin_y = inputImage.rows * detect_n;
-
-	double right_ini_x = ((ini_y - right_b.y) / right_m) + right_b.x;
-	double right_fin_x = ((fin_y - right_b.y) / right_m) + right_b.x;
-
-	double left_ini_x = ((ini_y - left_b.y) / left_m) + left_b.x;
-	double left_fin_x = ((fin_y - left_b.y) / left_m) + left_b.x;
-
-	line_middle.y = steer_height / 100.0 * inputImage.rows;
-
-	int left_xx = (line_middle.y - left_b.y) / (left_m)+left_b.x;
-	int right_xx = (line_middle.y - right_b.y) / (right_m)+right_b.x;
-
 	line_middle.x = (right_xx + left_xx)/2.0;
 
 	circle(inputImage, line_middle , 5, Scalar(255, 255, 0), 5);
@@ -361,9 +379,9 @@ int LaneDetector::plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std:
 	int i = 0;
 	// Create the transparent polygon for a better visualization of the lane
 	/* // for debug
-	for(i=0; i < 4; i++){
-		cout << lane[i] << endl;
-	}*/
+	   for(i=0; i < 4; i++){
+	   cout << lane[i] << endl;
+	   }*/
 	inputImage.copyTo(output);
 	poly_points.push_back(lane[2]);
 	poly_points.push_back(lane[0]);
