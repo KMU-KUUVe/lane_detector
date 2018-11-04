@@ -40,41 +40,35 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	
 	cvtColor(img_bgr, grayy, COLOR_BGR2GRAY);
 	cv::threshold(img_bgr, thre, 180, 255, cv::THRESH_BINARY);
-	imshow("thre....", thre);
+//	imshow("thre....", thre);
 
-
+	/*
 	//Filter white pixels with RGB
 	inRange(img_bgr, lower_white_rgb, upper_white_rgb, white_mask_rgb);
 	bitwise_and(img_bgr, img_bgr, white_image_rgb, white_mask_rgb);
 	imshow("white rgb", white_image_rgb);
-	//Filter white pixels with HSV
-	cvtColor(test, img_hsv, COLOR_BGR2HSV);
-	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
-	bitwise_and(test, test, white_image_hsv, white_mask_hsv);
-	cvtColor(test, test, COLOR_BGR2HSV);
-	cv::threshold(test, test, 170, 255, cv::THRESH_BINARY);
-	imshow("white_hsv", white_image_hsv);
-
-	/* //using white - hsv filtering
+	*/	
+	
+	 //using white - hsv filtering
 	   cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
 	   inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
 	   bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
-	   cvtColor(img_bgr, img_bgr, COLOR_BGR2HSV);
-	   cv::threshold(img_bgr, img_bgr, 170, 255, cv::THRESH_BINARY);
-	   imshow("white_hsv", white_image_hsv);
-	 */
 
+	   cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
+	   imshow("white_hsv", white_image_hsv);
+	
+	/*
 	//Filter yellow pixels( Hue 30 )
 	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
 	inRange(img_hsv, lower_yellow_hsv, upper_yellow_hsv, yellow_mask);
 	bitwise_and(img_bgr, img_bgr, yellow_image, yellow_mask);
-
+	*/
 	//Combine the two above images
-	addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
-	/* //using white - hsv filtering
-	   addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
-	 */
-	img_combine.copyTo(img_filtered);
+	//addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
+	
+	//using white - hsv filtering
+	//addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
+	white_image_hsv.copyTo(img_filtered);
 
 
 }
