@@ -12,8 +12,8 @@ using namespace cv;
 //bluring the images for remove noise.
 cv::Mat LaneDetector::deNoise(cv::Mat inputImage) {
 	cv::Mat output;
-	cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);
-	//  medianBlur(inputImage, output, 3);
+	//cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);
+	cv::medianBlur(inputImage, output, 3);
 	return output;
 }
 
@@ -37,7 +37,7 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	Mat yellow_mask, yellow_image;
 	Mat white_mask_hsv, white_image_hsv;
 	Mat thre, grayy;
-	
+
 	cvtColor(img_bgr, grayy, COLOR_BGR2GRAY);
 	cv::threshold(img_bgr, thre, 180, 255, cv::THRESH_BINARY);
 //	imshow("thre....", thre);
@@ -47,8 +47,8 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	inRange(img_bgr, lower_white_rgb, upper_white_rgb, white_mask_rgb);
 	bitwise_and(img_bgr, img_bgr, white_image_rgb, white_mask_rgb);
 	imshow("white rgb", white_image_rgb);
-	*/	
-	
+	*/
+
 	 //using white - hsv filtering
 	   cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
 	   inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
@@ -56,7 +56,7 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 
 	   cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
 	   imshow("white_hsv", white_image_hsv);
-	
+
 	/*
 	//Filter yellow pixels( Hue 30 )
 	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
@@ -65,7 +65,7 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	*/
 	//Combine the two above images
 	//addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
-	
+
 	//using white - hsv filtering
 	//addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
 	white_image_hsv.copyTo(img_filtered);

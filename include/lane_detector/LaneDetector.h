@@ -60,7 +60,6 @@ public:
 	std::vector<cv::Point> regression(std::vector<std::vector<cv::Vec4i> > left_right_lines, cv::Mat inputImage, double &angle);  // Get only one line for each side of the lane
 	std::string predictTurn();  // Determine if the lane is turning or not by calculating the position of the vanishing point
 	int plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std::string turn);  // Plot the resultant lane and turn prediction in the frame.
-
 	void filter_colors(cv::Mat _img_bgr, cv::Mat &img_filtered);
 	void DrawLabelingImage(cv::Mat image);
 
