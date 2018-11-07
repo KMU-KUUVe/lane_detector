@@ -39,8 +39,8 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	Mat thre, grayy;
 
 	cvtColor(img_bgr, grayy, COLOR_BGR2GRAY);
-	cv::threshold(img_bgr, thre, 180, 255, cv::THRESH_BINARY);
-//	imshow("thre....", thre);
+	cv::threshold(grayy, thre, 180, 255, cv::THRESH_BINARY);
+	imshow("thre....", thre);
 
 	/*
 	//Filter white pixels with RGB
@@ -54,21 +54,15 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	   inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
 	   bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
 
+	   cvtColor(white_image_hsv,white_image_hsv,COLOR_BGR2GRAY);
 	   cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
 	   imshow("white_hsv", white_image_hsv);
 
-	/*
-	//Filter yellow pixels( Hue 30 )
-	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
-	inRange(img_hsv, lower_yellow_hsv, upper_yellow_hsv, yellow_mask);
-	bitwise_and(img_bgr, img_bgr, yellow_image, yellow_mask);
-	*/
-	//Combine the two above images
-	//addWeighted(white_image_rgb, 1.0, yellow_image, 1.0, 0.0, img_combine);
 
-	//using white - hsv filtering
-	//addWeighted(white_image_hsv, 1.0, yellow_image, 1.0, 0.0, img_combine);
-	white_image_hsv.copyTo(img_filtered);
+
+
+
+	thre.copyTo(img_filtered);
 
 
 }
@@ -155,16 +149,17 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  			}
  		}
  	}
-
+    cout << "left : " << left_x_num << "     right : "<< right_x_num << endl;
+	
  	//imshow("frame", frame);
  	line(denoise, Point(2, line_height), Point(denoise.cols, line_height), Scalar(0, 255, 255), 5);
  	line(denoise, Point(denoise.cols - 2, line_height), Point(denoise.cols * 2 / 3.0, line_height), Scalar(255, 255, 255), 5);
 
- 	if (!(left_x_num == 0))
+ 	if (!(left_x_num == 0)&&(left_x_num > 100))
  	{
  		left_x = left_sum_x / left_x_num;
  	}
- 	if (!(right_x_num == 0))
+ 	if (!(right_x_num == 0) && (right_x_num > 100))
  	{
  		right_x = right_sum_x / right_x_num;
  	}
@@ -187,10 +182,10 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  	// plot
  	line(frame, Point(2, line_height), Point(frame.cols / 3.0, line_height), Scalar(0, 255, 255), 5);
  	line(frame, Point(frame.cols - 2, line_height), Point(frame.cols * 2 / 3.0, line_height), Scalar(255, 255, 255), 5);
- 	//circle(frame, Point(frame.cols/2, frame.rows/2), 5, Scalar(255, 0, 0), 5);
+ 	//circle(frame, Point(frame.cols/2, (frame.rows/2), 5, Scalar(255, 0, 0), 5);
  	circle(frame, Point(left_x, line_height), 5, Scalar(255, 0, 0), 5);
  	circle(frame, Point(right_x, line_height), 5, Scalar(255, 0, 0), 5);
-
+	line(frame, Point(frame.cols/2, 0), Point(frame.cols/2, frame.rows), Scalar(255,0,0), 1 );
  	line(frame, Point(middle, line_height), Point(denoise.cols / 2, denoise.rows), Scalar(255, 255, 255), 4);
  	imshow("frame", frame);
  	return angle;

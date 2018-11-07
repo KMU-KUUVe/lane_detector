@@ -1,7 +1,7 @@
 <launch>
     <!-- usb_cam -->
 	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-		<param name="video_device" value="/dev/video0" />
+		<param name="video_device" value="/dev/video1" />
 		<param name="image_width" value="640" />
 		<param name="image_height" value="480" />
 		<param name="pixel_format" value="yuyv" />
@@ -13,11 +13,11 @@
     <!-- lane_detector-->
 	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
 		<!-- scale platform -->
-		<param name="throttle" value="4" />
+		<param name="throttle" value="3" />
 		<param name="angle_factor" type="double" value="1.0" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 	</node>
 
     <!-- platform_control-->
-    <!--<node pkg="platform_control" type="write_serial" name="write_serial" />-->
+    <node pkg="platform_control" type="write_serial" name="write_serial" />
 </launch>

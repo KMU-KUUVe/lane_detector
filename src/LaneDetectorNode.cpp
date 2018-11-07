@@ -63,6 +63,8 @@ int LaneDetectorNode::laneDetecting()
 {
 	int ncols = frame.cols;
 	int nrows = frame.rows;
+	int left_x =0;
+	int right_x =frame.cols;
 
 	int64 t1 = getTickCount();
 	frame_count++;
@@ -75,7 +77,7 @@ int LaneDetectorNode::laneDetecting()
 	img_denoise = lanedetector.deNoise(img_mask2);
 	//imshow("img_denoise", img_denoise);
 
-	double angle = lanedetector.steer_control(img_denoise, steer_height, 5, left_x, right_x, img_mask);
+	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask);
 
 	int64 t2 = getTickCount();
 	double ms = (t2 - t1) * 1000 / getTickFrequency();
@@ -83,7 +85,7 @@ int LaneDetectorNode::laneDetecting()
 	avg = sum / (double)frame_count;
 	//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
 	waitKey(3);
-	ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
+	//ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
 
 	return angle * angle_factor_;
 }

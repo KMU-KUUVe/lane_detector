@@ -73,7 +73,7 @@ class LaneDetectorNode
 
 		int throttle_ = 0;
 		int steer_control_value_= 0;
-		double angle_factor_ = 1.0;
+		double angle_factor_ = 0.7;
 		uchar steer_height = 70;
 
 
@@ -98,8 +98,6 @@ class LaneDetectorNode
 		int j = 0;
 		double angle = 0;
 
-		int left_x =0;
-		int right_x =0;
 
 		cv::String test_video_path = "";
 };
