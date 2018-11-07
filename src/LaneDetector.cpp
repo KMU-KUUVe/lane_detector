@@ -116,7 +116,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  *@param turn is the output string containing the turn information
  *@return The function returns a 0
  */
- double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , Mat frame)
+ double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , Mat frame, unsigned int &zero_count)
  {
 
 
@@ -150,7 +150,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  		}
  	}
     cout << "left : " << left_x_num << "     right : "<< right_x_num << endl;
-	
+
  	//imshow("frame", frame);
  	line(denoise, Point(2, line_height), Point(denoise.cols, line_height), Scalar(0, 255, 255), 5);
  	line(denoise, Point(denoise.cols - 2, line_height), Point(denoise.cols * 2 / 3.0, line_height), Scalar(255, 255, 255), 5);
@@ -163,7 +163,11 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  	{
  		right_x = right_sum_x / right_x_num;
  	}
-
+	if((left_x_num == 0) && (right_x_num == 0)){
+		zero_count ++;
+	}else{
+		zero_count = 0;
+	}
 
  	int middle = (left_x + right_x) / 2.0;
 

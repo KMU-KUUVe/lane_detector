@@ -65,6 +65,7 @@ int LaneDetectorNode::laneDetecting()
 	int nrows = frame.rows;
 	int left_x =0;
 	int right_x =frame.cols;
+	unsigned int zero_count = 0;
 
 	int64 t1 = getTickCount();
 	frame_count++;
@@ -77,7 +78,13 @@ int LaneDetectorNode::laneDetecting()
 	img_denoise = lanedetector.deNoise(img_mask2);
 	//imshow("img_denoise", img_denoise);
 
-	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask);
+	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask, zero_count);
+	if(zero_count > 1500){
+		u_turn = true;
+	}
+	else{
+		u_turn = false;
+	}
 
 	int64 t2 = getTickCount();
 	double ms = (t2 - t1) * 1000 / getTickFrequency();
