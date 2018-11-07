@@ -29,10 +29,7 @@ private:
 
 	//regression variables
 	double detect_n = 0.30; // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
- 	uchar steer_height = 35; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
-
-	//predict turn variables
-	double resize_n_turn = 1; //??
+ 	uchar steer_height = 70; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
 
 	// ROI variables
 	float	 height1 = 0.3;
@@ -53,15 +50,9 @@ private:
 
 public:
 	cv::Mat deNoise(cv::Mat inputImage);  // Apply Gaussian blurring to the input Image
-	cv::Mat edgeDetector(cv::Mat img_noise);  // Filter the image to obtain only edges
-	cv::Mat mask(cv::Mat img_edges , int method);  // Mask the edges image to only care about ROI
-	std::vector<cv::Vec4i> houghLines(cv::Mat img_mask);  // Detect Hough lines in masked edges image
-	std::vector<std::vector<cv::Vec4i> > lineSeparation(std::vector<cv::Vec4i> lines, cv::Mat img_edges);  // Sprt detected lines by their slope into right and left lines
-	std::vector<cv::Point> regression(std::vector<std::vector<cv::Vec4i> > left_right_lines, cv::Mat inputImage, double &angle);  // Get only one line for each side of the lane
-	std::string predictTurn();  // Determine if the lane is turning or not by calculating the position of the vanishing point
-	int plotLane(cv::Mat inputImage, std::vector<cv::Point> lane, std::string turn);  // Plot the resultant lane and turn prediction in the frame.
+	cv::Mat mask(cv::Mat img_edges);  // Mask the edges image to only care about ROI
 	void filter_colors(cv::Mat _img_bgr, cv::Mat &img_filtered);
-	void DrawLabelingImage(cv::Mat image);
+	double steer_control(cv::Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , cv::Mat frame);
 
 };
 
