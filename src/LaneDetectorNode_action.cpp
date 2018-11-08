@@ -4,8 +4,10 @@ using namespace std;
 using namespace cv;
 
 LaneDetectorNode::LaneDetectorNode()
+	:as_(nh_, "lane_detector", boost::bind(&LaneDetectorNode::actionCallback, this, _1), false)
 {
 	nh_ = ros::NodeHandle("~");
+	as_.start();
 
 	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
@@ -15,30 +17,41 @@ LaneDetectorNode::LaneDetectorNode()
 }
 
 
-LaneDetectorNode::LaneDetectorNode(String path)
-	: test_video_path(path)
-{}
+void LaneDetectorNode::actionCallback(const state_cpp_msg::MissionPlannerGoalConstPtr& goal)
+{
+	cout << "lane detector actioniCallback called" << endl;
+	mission_start = true;
 
+	ros::Rate r(10);
+
+	while(ros::ok()){
+		if(mission_cleared){
+			state_cpp_msg::MissionPlannerResult result;
+			as_.setSucceeded(result);
+			mission_start = false;
+			break;
+		}
+		r.sleep();
+	}
+}
 
 void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {	
-	bool lane_status = true;
-	try{
-		parseRawimg(image, frame);
-	} catch(const cv_bridge::Exception& e) {
-		ROS_ERROR("cv_bridge exception: %s", e.what());
-		return ;
-	} catch(const std::runtime_error& e) {
-		cerr << e.what() << endl;
+	if(!mission_start){
+		try{
+			parseRawimg(image, frame);
+		} catch(const cv_bridge::Exception& e) {
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			return ;
+		} catch(const std::runtime_error& e) {
+			cerr << e.what() << endl;
+		}
+
+		getRosParamForUpdate();
+		steer_control_value_ = laneDetecting();
+		ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
+		control_pub_.publish(control_msg);
 	}
-
-	getRosParamForUpdate();
-
-	steer_control_value_ = laneDetecting();
-
-	ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
-	
-	control_pub_.publish(control_msg);
 }
 
 
@@ -52,7 +65,6 @@ void LaneDetectorNode::getRosParamForUpdate()
 ackermann_msgs::AckermannDriveStamped LaneDetectorNode::makeControlMsg()
 {
 	ackermann_msgs::AckermannDriveStamped control_msg;
-	//control_msg.drive.steering_angle = steer_control_value;
 	control_msg.drive.steering_angle = steer_control_value_;
 	control_msg.drive.speed = throttle_;
 	return control_msg;
@@ -80,10 +92,10 @@ int LaneDetectorNode::laneDetecting()
 
 	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask, zero_count);
 	if(zero_count > 1500){
-		u_turn = true;
+		mission_cleared= true;
 	}
 	else{
-		u_turn = false;
+		mission_cleared = false;
 	}
 
 	int64 t2 = getTickCount();
@@ -111,45 +123,3 @@ void LaneDetectorNode::parseRawimg(const sensor_msgs::ImageConstPtr& ros_img, cv
 }
 
 
-bool LaneDetectorNode::run_test()
-{
-	if(test_video_path.empty())
-	{
-		ROS_ERROR("Test is failed. video path is empty! you should set video path by constructor argument");
-		return false;
-	}
-
-	VideoCapture cap;
-	//cap.open("../../kasa.mp4");
-	cap.open(test_video_path);
-
-	if (!cap.isOpened())
-	{
-		ROS_ERROR("Test is failed. video is empty! you should check video path (constructor argument is correct)");
-		return false;
-	}
-
-	while (1) {
-		// Capture frame
-		if (!cap.read(frame))
-			break;
-
-
-		int ncols = frame.cols;
-		int nrows = frame.rows;
-
-
-		int64 t1 = getTickCount();
-		frame_count++;
-
-		int64 t2 = getTickCount();
-		double ms = (t2 - t1) * 1000 / getTickFrequency();
-		sum += ms;
-		avg = sum / (double)frame_count;
-		waitKey(25);
-		//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
-
-		printf("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
-	}
-
-}
