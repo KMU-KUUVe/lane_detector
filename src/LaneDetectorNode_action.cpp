@@ -11,7 +11,6 @@ LaneDetectorNode::LaneDetectorNode()
 
 	/* if NodeHangle("~"), then (write -> /lane_detector/write)	*/
 	control_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ackermann", 10);
-	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 
 	getRosParamForUpdate();
 }
@@ -21,6 +20,7 @@ void LaneDetectorNode::actionCallback(const state_cpp_msg::MissionPlannerGoalCon
 {
 	cout << "lane detector actioniCallback called" << endl;
 	mission_start = true;
+	image_sub_ = nh_.subscribe("/usb_cam/image_raw", 1, &LaneDetectorNode::imageCallback, this);
 
 	ros::Rate r(10);
 
@@ -37,7 +37,7 @@ void LaneDetectorNode::actionCallback(const state_cpp_msg::MissionPlannerGoalCon
 
 void LaneDetectorNode::imageCallback(const sensor_msgs::ImageConstPtr& image)
 {	
-	if(!mission_start){
+	if(mission_start){
 		try{
 			parseRawimg(image, frame);
 		} catch(const cv_bridge::Exception& e) {
@@ -59,6 +59,7 @@ void LaneDetectorNode::getRosParamForUpdate()
 {
 	nh_.getParam("throttle", throttle_);
 	nh_.getParam("angle_factor", angle_factor_);
+	nh_.getParam("stop_count", stop_count);
 }
 
 
@@ -77,7 +78,6 @@ int LaneDetectorNode::laneDetecting()
 	int nrows = frame.rows;
 	int left_x =0;
 	int right_x =frame.cols;
-	unsigned int zero_count = 0;
 
 	int64 t1 = getTickCount();
 	frame_count++;
@@ -91,7 +91,8 @@ int LaneDetectorNode::laneDetecting()
 	//imshow("img_denoise", img_denoise);
 
 	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask, zero_count);
-	if(zero_count > 1500){
+	ROS_INFO("zero_count: %d", zero_count);
+	if(zero_count > stop_count){
 		mission_cleared= true;
 	}
 	else{

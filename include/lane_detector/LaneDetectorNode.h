@@ -77,6 +77,9 @@ class LaneDetectorNode
 		bool mission_start = false;
 		bool mission_cleared = false;
 
+		int zero_count = 0;
+		int stop_count = 100;
+
 		int throttle_ = 0;
 		int steer_control_value_= 0;
 		double angle_factor_ = 0.7;

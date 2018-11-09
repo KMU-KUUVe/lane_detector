@@ -52,7 +52,7 @@ public:
 	cv::Mat deNoise(cv::Mat inputImage);  // Apply Gaussian blurring to the input Image
 	cv::Mat mask(cv::Mat img_edges);  // Mask the edges image to only care about ROI
 	void filter_colors(cv::Mat _img_bgr, cv::Mat &img_filtered);
-	double steer_control(cv::Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , cv::Mat frame, unsigned int &zero_count);
+	double steer_control(cv::Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , cv::Mat frame, int &zero_count);
 
 };
 

@@ -116,7 +116,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  *@param turn is the output string containing the turn information
  *@return The function returns a 0
  */
- double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , Mat frame, unsigned int &zero_count)
+ double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , Mat frame, int &zero_count)
  {
 
 

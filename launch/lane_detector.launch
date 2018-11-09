@@ -11,10 +11,11 @@
 	</node>
 
     <!-- lane_detector-->
-	<node pkg="lane_detector" type="lane_detector" name="lane_detector">
+	<node pkg="lane_detector" type="lane_detector" name="lane_detector" output="screen">
 		<!-- scale platform -->
 		<param name="throttle" value="3" />
 		<param name="angle_factor" type="double" value="1.0" />
+		<param name="stop_count" value="100" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 	</node>
 
