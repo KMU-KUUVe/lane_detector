@@ -83,7 +83,7 @@ class LaneDetectorNode
 		int throttle_ = 0;
 		int steer_control_value_= 0;
 		double angle_factor_ = 0.7;
-		uchar steer_height = 70;
+		int steer_height = 60;
 		bool u_turn;
 
 		LaneDetector lanedetector;  // Create the class object
