@@ -174,12 +174,6 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
 
 
  	double angle = atan2(middle - denoise.cols / 2, denoise.rows - line_height) * 180 / PI;
-	if(angle > 23){
-		angle = 23;
-	}
-	else if(angle < -23){
-		angle = -23;
-	}
 
 
 
