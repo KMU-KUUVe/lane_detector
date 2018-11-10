@@ -16,6 +16,7 @@
 		<param name="throttle" value="3" />
 		<param name="angle_factor" type="double" value="1.0" />
 		<param name="stop_count" value="100" />
+		<param name="steer_height" value="65" />
 		<remap from="/lane_detector/ackermann" to="ackermann" />
 	</node>
 
