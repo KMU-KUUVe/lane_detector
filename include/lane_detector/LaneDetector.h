@@ -29,8 +29,7 @@ private:
 
 	//regression variables
 	double detect_n = 0.30; // detection point(line) of y axis for line regression(also apply to visualization).(the percentage of image column)
- 	int steer_height = 60; //decide line_middle (line_middle.y = steer_height / 100.0 * inputImage.rows)
-
+ 	
 	// ROI variables
 	float	 height1 = 0.3;
 	float height2 = 0.5;
