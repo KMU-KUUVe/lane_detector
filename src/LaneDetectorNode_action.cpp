@@ -60,6 +60,8 @@ void LaneDetectorNode::getRosParamForUpdate()
 	nh_.getParam("throttle", throttle_);
 	nh_.getParam("angle_factor", angle_factor_);
 	nh_.getParam("stop_count", stop_count);
+	nh_.getParam("steer_height", steer_height);
+	
 }
 
 
