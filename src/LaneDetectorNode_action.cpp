@@ -60,6 +60,8 @@ void LaneDetectorNode::getRosParamForUpdate()
 	nh_.getParam("throttle", throttle_);
 	nh_.getParam("angle_factor", angle_factor_);
 	nh_.getParam("stop_count", stop_count);
+	nh_.getParam("steer_height", steer_height);
+	
 }
 
 
@@ -78,7 +80,8 @@ int LaneDetectorNode::laneDetecting()
 	int nrows = frame.rows;
 	int left_x =0;
 	int right_x =frame.cols;
-
+	double angle_ = 0;
+	
 	int64 t1 = getTickCount();
 	frame_count++;
 
@@ -106,8 +109,24 @@ int LaneDetectorNode::laneDetecting()
 	//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
 	waitKey(3);
 	//ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
-
-	return angle * angle_factor_;
+	
+	//for add  factor to calculate left angle.
+	if(angle < 0){
+		angle_ = angle * (angle_factor_ + 0.2);
+	}
+	else{
+		angle_ = angle * angle_factor_;
+	}
+	
+	//for limit platform angle values.
+	if(angle_ > 23){
+		angle_ = 23;
+	}
+	else if (angle_ < -23){
+		angle_ = -23;
+	}
+	
+	return angle_;
 }
 
 

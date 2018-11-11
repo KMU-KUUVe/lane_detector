@@ -56,10 +56,7 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 
 	   cvtColor(white_image_hsv,white_image_hsv,COLOR_BGR2GRAY);
 	   cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
-	   imshow("white_hsv", white_image_hsv);
-
-
-
+	   //imshow("white_hsv", white_image_hsv);
 
 
 	thre.copyTo(img_filtered);
@@ -174,12 +171,6 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
 
 
  	double angle = atan2(middle - denoise.cols / 2, denoise.rows - line_height) * 180 / PI;
-	if(angle > 23){
-		angle = 23;
-	}
-	else if(angle < -23){
-		angle = -23;
-	}
 
 
 
