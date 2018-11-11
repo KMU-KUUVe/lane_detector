@@ -1,24 +1,4 @@
 <launch>
-    <!-- usb_cam -->
-	<node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
-		<param name="video_device" value="/dev/video0" />
-		<param name="image_width" value="640" />
-		<param name="image_height" value="480" />
-		<param name="pixel_format" value="yuyv" />
-		<param name="camera_frame_id" value="usb_cam" />
-		<param name="io_method" value="mmap"/>
-		<param name="framerate" value="30"/>
-	</node>
-
-    <!-- lane_detector-->
-	<node pkg="lane_detector" type="lane_detector" name="lane_detector" output="screen">
-		<!-- scale platform -->
-		<param name="throttle" value="3" />
-		<param name="angle_factor" type="double" value="1.0" />
-		<param name="stop_count" value="100" />
-		<remap from="/lane_detector/ackermann" to="ackermann" />
-	</node>
-
-    <!-- platform_control-->
-    <!--<node pkg="platform_control" type="write_serial" name="write_serial" />-->
+	<include file="$(find lane_detector)/launch/common.launch />
+	<include file="$(find lane_detector)/launch/mission.launch />
 </launch>
