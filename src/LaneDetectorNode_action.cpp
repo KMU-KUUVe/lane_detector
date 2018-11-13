@@ -26,9 +26,13 @@ void LaneDetectorNode::actionCallback(const state_cpp_msg::MissionPlannerGoalCon
 
 	while(ros::ok()){
 		if(mission_cleared){
-			state_cpp_msg::MissionPlannerResult result;
-			as_.setSucceeded(result);
 			mission_start = false;
+			state_cpp_msg::MissionPlannerResult result;
+			steer_control_value_ = 0;
+			throttle_ = 0;
+			ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
+			control_pub_.publish(control_msg);
+			as_.setSucceeded(result);
 			break;
 		}
 		r.sleep();
@@ -97,6 +101,7 @@ int LaneDetectorNode::laneDetecting()
 	ROS_INFO("zero_count: %d", zero_count);
 	if(zero_count > stop_count){
 		mission_cleared= true;
+		return 0;
 	}
 	else{
 		mission_cleared = false;
