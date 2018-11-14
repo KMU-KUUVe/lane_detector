@@ -32,6 +32,7 @@ void LaneDetectorNode::actionCallback(const state_cpp_msg::MissionPlannerGoalCon
 			throttle_ = 0;
 			ackermann_msgs::AckermannDriveStamped control_msg = makeControlMsg();
 			control_pub_.publish(control_msg);
+			destroyAllWindows();
 			as_.setSucceeded(result);
 			break;
 		}
