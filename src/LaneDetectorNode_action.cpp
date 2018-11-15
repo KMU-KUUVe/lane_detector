@@ -93,7 +93,7 @@ int LaneDetectorNode::laneDetecting()
 	lanedetector.filter_colors(img_mask, img_mask2);
 	img_denoise = lanedetector.deNoise(img_mask2);
 
-	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask, zero_count);
+	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, img_mask, zero_count);
 	ROS_INFO("zero_count: %d", zero_count);
 	if(zero_count > stop_count){
 		mission_cleared= true;
