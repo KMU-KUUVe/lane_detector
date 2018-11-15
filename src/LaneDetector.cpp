@@ -12,7 +12,6 @@ using namespace cv;
 //bluring the images for remove noise.
 cv::Mat LaneDetector::deNoise(cv::Mat inputImage) {
 	cv::Mat output;
-	//cv::GaussianBlur(inputImage, output, cv::Size(3, 3), 0, 0);
 	cv::medianBlur(inputImage, output, 3);
 	return output;
 }
@@ -47,17 +46,16 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
 	inRange(img_bgr, lower_white_rgb, upper_white_rgb, white_mask_rgb);
 	bitwise_and(img_bgr, img_bgr, white_image_rgb, white_mask_rgb);
 	imshow("white rgb", white_image_rgb);
+
+	//using white - hsv filtering
+	cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
+	inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
+	bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
+
+	cvtColor(white_image_hsv,white_image_hsv,COLOR_BGR2GRAY);
+	cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
+	//imshow("white_hsv", white_image_hsv);
 	*/
-
-	 //using white - hsv filtering
-	   cvtColor(img_bgr, img_hsv, COLOR_BGR2HSV);
-	   inRange(img_hsv, lower_white_hsv, upper_white_hsv, white_mask_hsv);
-	   bitwise_and(img_bgr, img_bgr, white_image_hsv, white_mask_hsv);
-
-	   cvtColor(white_image_hsv,white_image_hsv,COLOR_BGR2GRAY);
-	   cv::threshold(white_image_hsv, white_image_hsv, 170, 255, cv::THRESH_BINARY);
-	   //imshow("white_hsv", white_image_hsv);
-
 
 	thre.copyTo(img_filtered);
 
@@ -71,13 +69,9 @@ void LaneDetector::filter_colors(Mat _img_bgr, Mat &img_filtered)
  *@return Binary image with only the desired edges being represented
  */
 
-/* method
-0 : hexagon ROI
-1 : rectangle ROI
- */
+
 cv::Mat LaneDetector::mask(cv::Mat frame) {
 	cv::Mat output;
-
 	cv::Mat mask = cv::Mat::zeros(frame.size(), frame.type());
 	cv::Mat mask2 = cv::Mat::zeros(frame.size(), frame.type());
 
@@ -89,16 +83,10 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
 	};
 	// Create a binary polygon mask
 	cv::fillConvexPoly(mask, pts, 4, cv::Scalar(255, 255, 255));
-//  cv::fillConvexPoly(mask2, pts2, 4, cv::Scalar(255, 255, 255));
 
 	// Multiply the edges image and the mask to get the output
 	cv::bitwise_and(frame, mask, output);
- // cv::bitwise_and(frame, mask2, output2);
-	//imshow("output2", output2);
-	//Mat wows = output - output2;
-	//imshow("wows", wows);
 
-	imshow("output", output);
 	return output;
 }
 
@@ -113,15 +101,14 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  *@param turn is the output string containing the turn information
  *@return The function returns a 0
  */
- double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, int &left_x, int &right_x , Mat frame, int &zero_count)
+ double LaneDetector::steer_control(Mat denoise, int height_percent, int judging_line, Mat frame, int &zero_count)
  {
-
-
  	int left_x_num = 0;
  	int right_x_num = 0;
-
  	int left_sum_x = 0;
  	int right_sum_x = 0;
+	int left_x =0;
+	int right_x =frame.cols;
 
  	int line_height = denoise.rows * height_percent / 100.0;
 
@@ -146,20 +133,19 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
  			}
  		}
  	}
-    cout << "left : " << left_x_num << "     right : "<< right_x_num << endl;
-
- 	//imshow("frame", frame);
+    
  	line(denoise, Point(2, line_height), Point(denoise.cols, line_height), Scalar(0, 255, 255), 5);
  	line(denoise, Point(denoise.cols - 2, line_height), Point(denoise.cols * 2 / 3.0, line_height), Scalar(255, 255, 255), 5);
 
- 	if (!(left_x_num == 0)&&(left_x_num > 100))
+ 	if (left_x_num > 100)
  	{
  		left_x = left_sum_x / left_x_num;
  	}
- 	if (!(right_x_num == 0) && (right_x_num > 100))
+ 	if (right_x_num > 100)
  	{
  		right_x = right_sum_x / right_x_num;
  	}
+
 	if((left_x_num == 0) && (right_x_num == 0)){
 		zero_count ++;
 	}else{
@@ -167,12 +153,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
 	}
 
  	int middle = (left_x + right_x) / 2.0;
-
-
-
  	double angle = atan2(middle - denoise.cols / 2, denoise.rows - line_height) * 180 / PI;
-
-
 
  	// plot
  	line(frame, Point(2, line_height), Point(frame.cols / 3.0, line_height), Scalar(0, 255, 255), 5);
@@ -183,5 +164,7 @@ cv::Mat LaneDetector::mask(cv::Mat frame) {
 	line(frame, Point(frame.cols/2, 0), Point(frame.cols/2, frame.rows), Scalar(255,0,0), 1 );
  	line(frame, Point(middle, line_height), Point(denoise.cols / 2, denoise.rows), Scalar(255, 255, 255), 4);
  	imshow("frame", frame);
+	waitKey(3);
+
  	return angle;
  }

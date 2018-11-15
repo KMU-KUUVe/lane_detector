@@ -83,8 +83,6 @@ int LaneDetectorNode::laneDetecting()
 {
 	int ncols = frame.cols;
 	int nrows = frame.rows;
-	int left_x =0;
-	int right_x =frame.cols;
 	double angle_ = 0;
 	
 	int64 t1 = getTickCount();
@@ -92,11 +90,8 @@ int LaneDetectorNode::laneDetecting()
 
 	resize(frame, lane_frame, Size(ncols / resize_n, nrows / resize_n));
 	img_mask = lanedetector.mask(lane_frame);
-	//imshow("img_mask", img_mask);
 	lanedetector.filter_colors(img_mask, img_mask2);
-	//imshow("img_mask2", img_mask2);
 	img_denoise = lanedetector.deNoise(img_mask2);
-	//imshow("img_denoise", img_denoise);
 
 	double angle = lanedetector.steer_control(img_denoise, steer_height, 12, left_x, right_x, img_mask, zero_count);
 	ROS_INFO("zero_count: %d", zero_count);
@@ -113,23 +108,23 @@ int LaneDetectorNode::laneDetecting()
 	sum += ms;
 	avg = sum / (double)frame_count;
 	//cout << "it took :  " << ms << "ms." << "average_time : " << avg << " frame per second (fps) : " << 1000 / avg << endl;
-	waitKey(3);
 	//ROS_INFO("it took : %6.2f [ms].  average_time : %6.2f [ms].  frame per second (fps) : %6.2f [frame/s].   steer angle : %5.2f [deg]\n", ms, avg, 1000 / avg , angle);
 	
 	//for add  factor to calculate left angle.
-	if(angle < 0){
-		angle_ = angle * (angle_factor_ + 0.2);
+	if(angle <= 0){
+		angle_ = (angle * angle_factor_) -5;
 	}
 	else{
 		angle_ = angle * angle_factor_;
 	}
-	
-	//for limit platform angle values.
-	if(angle_ > 23){
-		angle_ = 23;
+
+	//for limit platform angle values.	
+
+	if(angle_ > 26){
+		angle_ = 26;
 	}
-	else if (angle_ < -23){
-		angle_ = -23;
+	else if (angle_ < -26){
+		angle_ = -26;
 	}
 	
 	return angle_;

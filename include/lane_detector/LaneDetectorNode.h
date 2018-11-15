@@ -70,8 +70,8 @@ class LaneDetectorNode
 
 	protected:
 		ros::NodeHandle nh_;
-		ros::Publisher control_pub_;	// Controll 메시지를 Publish하는 Publisher
-		ros::Subscriber image_sub_;		// 가공되지 않은 raw image 메시지를 Subscribe하는 Subscriber
+		ros::Publisher control_pub_;	// Controll message Publisher
+		ros::Subscriber image_sub_;	//raw image message Subscriber
 		actionlib::SimpleActionServer<state_cpp_msg::MissionPlannerAction> as_;
 
 		bool mission_start = false;
