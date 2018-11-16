@@ -112,7 +112,7 @@ int LaneDetectorNode::laneDetecting()
 	
 	//for add  factor to calculate left angle.
 	if(angle <= 0){
-		angle_ = (angle * angle_factor_) -5;
+		angle_ = (angle * angle_factor_) -4;
 	}
 	else{
 		angle_ = angle * angle_factor_;
